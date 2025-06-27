@@ -110,73 +110,89 @@ class GeminiService:
     def generate_interview_questions(self, resume_text: str, job_description: str, expected_skills: list) -> Dict:
         """Generate interview questions and answers based on resume"""
         
+        # Log input for debugging
+        logger.info(f"Generating questions for job with skills: {expected_skills}")
+        logger.info(f"Resume text length: {len(resume_text)} characters")
+        
         # Determine if this is a technical role
         technical_keywords = ['developer', 'engineer', 'programmer', 'software', 'coding', 'programming', 
                             'backend', 'frontend', 'fullstack', 'data', 'ml', 'ai', 'devops', 'architect']
         is_technical_role = any(keyword in job_description.lower() for keyword in technical_keywords)
         
+        # Truncate resume if too long
+        if len(resume_text) > 3000:
+            resume_text = resume_text[:3000] + "... [truncated]"
+        
         prompt = f"""
-        You are an expert technical interviewer preparing highly specific, personalized interview questions based on the candidate's actual experience and the job requirements.
-        
-        RESUME:
-        {resume_text}
-        
-        JOB DESCRIPTION:
-        {job_description}
-        
-        EXPECTED SKILLS:
-        {', '.join(expected_skills)}
-        
-        CRITICAL INSTRUCTIONS:
-        1. Questions MUST be HIGHLY SPECIFIC to the candidate's resume. Reference their actual projects, companies, technologies, and experiences.
-        2. Avoid generic questions. Every question should be impossible to ask without reading their resume.
-        3. For technical roles, include actual coding problems relevant to their experience.
-        4. Expected answers should be based on what this specific candidate should know given their background.
-        
-        Generate interview questions divided into three rounds:
-        
-        1. **Interview Round 1 - Technical Screening & Resume Verification** (6-7 questions):
-           - Ask about SPECIFIC projects mentioned in their resume
-           - Verify technologies they claim to have used with detailed questions
-           - Ask them to explain specific technical decisions from their past work
-           {"- Include 1 MEDIUM difficulty coding problem relevant to their experience and the job requirements" if is_technical_role else ""}
-           - Questions like "In your project at [Company X], you mentioned using [Technology Y]. What specific challenges did you face?"
-        
-        2. **Interview Round 2 - Deep Technical Dive** (5-6 questions):
-           - Deep dive into their most relevant project
-           - System design questions based on systems they've actually worked on
-           - Ask them to extend or improve something they built
-           - Questions like "How would you scale the [specific system] you built at [Company]?"
-           - Technology-specific questions based on their tech stack
-        
-        3. **Interview Round 3 - Behavioral & Project Leadership** (5-6 questions):
-           - Ask about specific team situations from their resume
-           - Challenges they faced in mentioned projects
-           - Questions about specific achievements or metrics they mentioned
-           - Their role in specific projects and decision-making process
-        
-        For each question, provide:
-        - The question itself (MUST reference specific details from their resume)
-        - Expected answer points (based on their specific experience)
-        - Follow-up questions to probe deeper into their actual work
-        - Red flags to watch for
-        
-        {"For coding problems, use multiline strings in the question and expected_answer fields." if is_technical_role else ""}
-        
-        Respond in JSON format:
-        {{
-            "interview_1": [
-                {{
-                    "question": "<question>",
-                    "expected_answer": "<detailed expected answer>",
-                    "follow_ups": ["<follow-up 1>", "<follow-up 2>"],
-                    "red_flags": ["<red flag 1>", "<red flag 2>"]
-                }}
-            ],
-            "interview_2": [...],
-            "interview_3": [...]
-        }}
-        """
+Analyze this resume and create interview questions:
+
+RESUME: {resume_text[:2000]}
+
+JOB: {job_description[:500]}
+
+REQUIRED SKILLS FOR THIS JOB: {', '.join(expected_skills[:10])}
+
+Generate 3 interview rounds with 4-5 questions each:
+
+Round 1 - Technical Screening (4-5 questions):
+- 2-3 questions about projects/experience from resume
+- 2 questions specifically testing the REQUIRED SKILLS listed above
+{"- 1 coding problem using one of the REQUIRED SKILLS" if is_technical_role else ""}
+
+Round 2 - Deep Technical Dive (4-5 questions):
+- 2-3 questions about system design and architecture from their work
+- 1-2 questions about advanced concepts in the REQUIRED SKILLS
+
+Round 3 - Behavioral & Skills Assessment (4-5 questions):
+- 2-3 behavioral questions about their past projects
+- 1-2 scenario questions using the REQUIRED SKILLS
+
+Output JSON with EXACTLY this structure:
+{{
+  "interview_1": [
+    {{
+      "question": "At [COMPANY], you worked on [PROJECT]. How did you implement [SPECIFIC TECH]?",
+      "expected_answer": "Should explain specific implementation details and technical decisions",
+      "follow_ups": ["What challenges did you face?", "How did you optimize it?"],
+      "red_flags": ["Cannot explain basic concepts", "No hands-on experience"]
+    }},
+    {{
+      "question": "Explain how [REQUIRED SKILL from job] works and give an example from your experience",
+      "expected_answer": "Should demonstrate understanding of [SKILL] with real examples",
+      "follow_ups": ["What are the limitations?", "When would you not use it?"],
+      "red_flags": ["Only theoretical knowledge", "Cannot provide examples"]
+    }}{"," if is_technical_role else ""}
+    {'''{
+      "question": "Write a function using [REQUIRED SKILL] to solve: [SPECIFIC PROBLEM RELATED TO JOB]",
+      "expected_answer": "Code solution demonstrating proficiency with [SKILL] and problem-solving",
+      "follow_ups": ["What is the time complexity?", "How would you test this?"],
+      "red_flags": ["Cannot write basic code", "No understanding of complexity"]
+    }''' if is_technical_role else ""}
+  ],
+  "interview_2": [
+    {{
+      "question": "Design a scalable version of [SYSTEM from resume] using [REQUIRED SKILL]",
+      "expected_answer": "Should show system design skills and knowledge of [SKILL]",
+      "follow_ups": ["How would you handle failures?", "What about security?"],
+      "red_flags": ["No consideration of scale", "Unfamiliar with technology"]
+    }}
+  ],
+  "interview_3": [
+    {{
+      "question": "Tell me about a time you had to learn [REQUIRED SKILL] quickly for a project",
+      "expected_answer": "Should show learning ability and practical application",
+      "follow_ups": ["What resources did you use?", "How did you validate your learning?"],
+      "red_flags": ["Never had to learn new skills", "No concrete examples"]
+    }}
+  ]
+}}
+
+CRITICAL: 
+1. Replace ALL placeholders like [COMPANY], [PROJECT], [REQUIRED SKILL] with ACTUAL values
+2. Include questions for EACH required skill: {', '.join(expected_skills[:5])}
+3. Keep text concise - max 100 chars per field
+4. Use only double quotes, no single quotes
+"""
         
         try:
             response = self.model.generate_content(prompt)
@@ -191,23 +207,56 @@ class GeminiService:
             # Clean up common JSON issues
             result_text = result_text.strip()
             
+            # Remove any markdown formatting
+            if "```" in result_text:
+                result_text = result_text.split("```")[0]
+            
+            # Try to extract JSON if it's embedded in text
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', result_text)
+            if json_match:
+                result_text = json_match.group(0)
+            
             # Try to parse JSON
             try:
-                return json.loads(result_text)
+                parsed_json = json.loads(result_text)
+                logger.info("Successfully parsed Gemini response")
+                return parsed_json
             except json.JSONDecodeError as je:
                 logger.error(f"JSON parsing error: {je}")
-                logger.error(f"Raw response text: {result_text[:500]}...")  # Log first 500 chars
+                logger.info(f"Response length: {len(result_text)} characters")
                 
                 # Try to fix common JSON issues
-                import re
                 # Remove any trailing commas before } or ]
                 result_text = re.sub(r',\s*}', '}', result_text)
                 result_text = re.sub(r',\s*]', ']', result_text)
+                # Remove any // comments
+                result_text = re.sub(r'//.*$', '', result_text, flags=re.MULTILINE)
+                # Remove any /* */ comments
+                result_text = re.sub(r'/\*[\s\S]*?\*/', '', result_text)
+                # Fix unescaped quotes in strings (but not the JSON structure quotes)
+                # This is a bit hacky but helps with common issues
+                result_text = re.sub(r'(?<=[^\\])"(?=[^:,\}\]]+["\'])', r'\"', result_text)
+                
+                # If JSON seems truncated, try to close it properly
+                open_braces = result_text.count('{')
+                close_braces = result_text.count('}')
+                open_brackets = result_text.count('[')
+                close_brackets = result_text.count(']')
+                
+                # Add missing closing brackets/braces
+                if open_brackets > close_brackets:
+                    result_text += ']' * (open_brackets - close_brackets)
+                if open_braces > close_braces:
+                    result_text += '}' * (open_braces - close_braces)
                 
                 # Try parsing again
                 try:
-                    return json.loads(result_text)
-                except:
+                    parsed_json = json.loads(result_text)
+                    logger.info("Successfully parsed after cleanup and bracket fixing")
+                    return parsed_json
+                except Exception as e2:
+                    logger.error(f"Still failed after cleanup: {e2}")
                     # If still failing, return default structure
                     logger.error("Failed to parse JSON after cleanup attempts")
                     return {

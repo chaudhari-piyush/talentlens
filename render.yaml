@@ -1,0 +1,31 @@
+databases:
+  - name: talentlens-db
+    databaseName: talentlens_production
+    user: talentlens_user
+    region: oregon
+    plan: starter
+
+services:
+  - type: web
+    name: talentlens-api
+    runtime: python
+    region: oregon
+    plan: starter
+    buildCommand: "./build.sh"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: talentlens-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: app/config/ServiceAccountKey.json
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11"
+    autoDeploy: true

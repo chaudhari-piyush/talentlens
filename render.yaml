@@ -28,4 +28,8 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: "3.11"
+      - key: CARGO_HOME
+        value: "/opt/render/project/.cargo"
+      - key: RUSTUP_HOME
+        value: "/opt/render/project/.rustup"
     autoDeploy: true

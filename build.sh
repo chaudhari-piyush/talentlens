@@ -5,9 +5,22 @@ set -e
 
 echo "Starting build process..."
 
-# Install Python dependencies using pip
-echo "Installing dependencies..."
-pip install --upgrade pip
+# Ensure we're using a clean pip environment
+echo "Setting up pip environment..."
+pip install --upgrade pip wheel setuptools
+
+# Install dependencies one by one to better handle issues
+echo "Installing core dependencies..."
+
+# Install packages that commonly have binary wheels
+pip install --upgrade \
+    cryptography \
+    psycopg2-binary \
+    numpy \
+    pillow
+
+# Install the rest of the dependencies
+echo "Installing remaining dependencies..."
 pip install -r requirements-render.txt
 
 # Run database migrations

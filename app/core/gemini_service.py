@@ -149,13 +149,7 @@ class GeminiService:
         - Follow-up questions to probe deeper into their actual work
         - Red flags to watch for
         
-        {"For the coding problem in Round 1, format it as:" if is_technical_role else ""}
-        {'''{{
-            "question": "Coding Problem: [Problem Title]\\n\\n[Detailed problem description]\\n\\nExample:\\nInput: ...\\nOutput: ...\\n\\nConstraints: ...",
-            "expected_answer": "```python\\n[Solution code]\\n```\\n\\nExplanation: [Algorithm explanation]\\nTime Complexity: O(...)\\nSpace Complexity: O(...)",
-            "follow_ups": ["Can you optimize this further?", "How would you handle edge cases?"],
-            "red_flags": ["Cannot write basic solution", "Doesn't consider edge cases"]
-        }}''' if is_technical_role else ""}
+        {"For coding problems, use multiline strings in the question and expected_answer fields." if is_technical_role else ""}
         
         Respond in JSON format:
         {{

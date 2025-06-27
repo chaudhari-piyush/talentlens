@@ -5,7 +5,7 @@ set -e
 
 echo "Starting build process..."
 
-# Install Python dependencies
+# Install Python dependencies using pip
 echo "Installing dependencies..."
 pip install --upgrade pip
 pip install -r requirements-render.txt
